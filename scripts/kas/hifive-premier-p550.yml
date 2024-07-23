@@ -1,0 +1,17 @@
+header:
+  version: 11
+  includes:
+    - scripts/kas/include/meta-sifive-common.yml
+
+target:
+ - core-image-minimal
+ - core-image-sato
+
+machine: hifive-premier-p550
+
+local_conf_header:
+  kmod-native: |
+    PACKAGECONFIG:append:pn-kmod-native = " zstd"
+
+  rootfs-alignment: |
+    IMAGE_ROOTFS_ALIGNMENT = "4096"

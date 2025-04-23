@@ -6,6 +6,8 @@ Subject: [PATCH] riscv: hifive_premier_p550: Update boot media sequence
 Boot Media scanning sequence is as below:
 SD-CARD->USB->NVMe->SATA->eMMC
 
+Upstream-Status: Pending
+
 Signed-off-by: Pritesh Patel <pritesh.patel@einfochips.com>
 ---
  include/configs/hifive_premier_p550.h | 2 +-

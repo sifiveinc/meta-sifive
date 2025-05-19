@@ -36,4 +36,6 @@ KMETA = "kernel-meta"
 KCONF_BSP_AUDIT_LEVEL = "2"
 KCONF_AUDIT_LEVEL = "2"
 
+INSANE_SKIP:kernel-vmlinux = "textrel"
+
 COMPATIBLE_MACHINE = "(hifive-premier-p550)"

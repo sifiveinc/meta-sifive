@@ -5,7 +5,8 @@ LICENSE = "CLOSED"
 
 SRC_URI:append:hifive-premier-p550 = " file://nsign.cfg"
 
-S = "${WORKDIR}"
+S = "${WORKDIR}/sources"
+UNPACKDIR = "${S}"
 
 INHIBIT_DEFAULT_DEPS = "1"
 INHIBIT_PACKAGE_DEBUG_SPLIT = "1"
@@ -21,7 +22,7 @@ do_compile() {
 	install -m 755 ${DEPLOY_DIR_IMAGE}/ddr_fw/ddr_fw.bin ${WORKDIR}/
 	install -m 755 ${DEPLOY_DIR_IMAGE}/second_boot_fw/second_boot_fw.bin ${WORKDIR}/
 	install -m 755 ${DEPLOY_DIR_IMAGE}/fw_payload.bin ${WORKDIR}/
-	cd ${WORKDIR} && nsign ./nsign.cfg
+	cd ${WORKDIR} && nsign ${UNPACKDIR}/nsign.cfg
 }
 
 do_deploy() {

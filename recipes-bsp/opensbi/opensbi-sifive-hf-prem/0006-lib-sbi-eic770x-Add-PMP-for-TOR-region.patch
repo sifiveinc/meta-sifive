@@ -13,6 +13,8 @@ Subject: [PATCH 6/8] lib: sbi: eic770x: Add PMP for TOR region
 	0x000000000c200000-0x000000000c203fff M: (I,R,W) S/U: (R,W)
 	0x000000000c000000-0x000000000c1fffff M: (I,R,W) S/U: (R,W)
 
+Upstream-Status: Pending
+
 Signed-off-by: Darshan Prajapati <darshan.prajapati@einfochips.com>
 Signed-off-by: Pinkesh Vaghela <pinkesh.vaghela@einfochips.com>
 ---

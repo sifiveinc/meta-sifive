@@ -3,7 +3,9 @@ From: Pritesh Patel <pritesh.patel@einfochips.com>
 Date: Mon, 12 Aug 2024 14:02:30 +0000
 Subject: [PATCH] Changes in CMakeLists.txt
 
+Upstream-Status: Pending
 ---
+
  src/CMakeLists.txt | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 

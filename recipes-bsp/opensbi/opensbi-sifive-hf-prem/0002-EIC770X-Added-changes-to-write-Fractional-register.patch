@@ -5,6 +5,8 @@ Subject: [PATCH 2/8] EIC770X: Added changes to write Fractional register
 
 writing fractional register to ensure correct baud rate
 
+Upstream-Status: Pending
+
 Signed-off-by: Darshan Prajapati <darshan.prajapati@einfochips.com>
 ---
  platform/eswin/eic770x/platform.c | 35 ++++++++++++++++++++++++++++++-

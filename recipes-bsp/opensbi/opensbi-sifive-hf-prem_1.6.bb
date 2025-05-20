@@ -10,21 +10,20 @@ require recipes-bsp/opensbi/opensbi-payloads.inc
 
 inherit autotools-brokensep deploy
 
-SRCREV = "a2b255b88918715173942f2c5e1f97ac9e90c877"
+SRCREV = "bd613dd92113f683052acfb23d9dc8ba60029e0a"
 SRC_URI = "git://github.com/riscv/opensbi.git;branch=master;protocol=https"
 
 SRC_URI:append = " \
 	file://0001-platform-Add-ESWIN-EIC770x-platform.patch \
-	file://0002-EIC770X-Added-changes-to-write-Fractional-register.patch \
-	file://0003-platform-eswin-Add-eic770X-UART-driver.patch \
-	file://0004-platform-eswin-Add-shutdown-and-reset-function.patch \
-	file://0005-lib-sbi-Configure-CSR-registers.patch \
-	file://0006-lib-sbi-eic770x-Add-PMP-for-TOR-region.patch \
-	file://0007-sbi-init-Modify-CSR-values.patch \
-	file://0008-lib-sbi-Add-new-PMP-region.patch \
+	file://0002-platform-eswin-Add-EIC770x-UART-driver.patch \
+	file://0003-platform-eswin-Add-shutdown-and-reset-function.patch \
+	file://0004-lib-sbi-Configure-CSR-registers.patch \
+	file://0005-lib-sbi-eic770x-Add-PMP-for-TOR-region.patch \
 "
 
 S = "${WORKDIR}/git"
+
+TARGET_DBGSRC_DIR = "/share/opensbi/*/generic/firmware/"
 
 TARGET_CC_ARCH += "${LDFLAGS}"
 
@@ -57,4 +56,3 @@ FILES:${PN} += "/share/opensbi/*/${RISCV_SBI_PLAT}/firmware/fw_payload.*"
 FILES:${PN} += "/share/opensbi/*/${RISCV_SBI_PLAT}/firmware/fw_dynamic.*"
 
 COMPATIBLE_HOST = "(riscv64|riscv32).*"
-INHIBIT_PACKAGE_STRIP = "1"

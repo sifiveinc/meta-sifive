@@ -1,7 +1,7 @@
-From 166197b02b271e575d859ff98e50e50e2b772120 Mon Sep 17 00:00:00 2001
-From: Darshan Prajapati <darshan.prajapati@einfochips.com>
-Date: Tue, 25 Jun 2024 15:32:46 +0530
-Subject: [PATCH 3/8] platform: eswin: Add eic770X UART driver
+From 3bace281d1ead7fa2eebd925f99f3f3e05fbce41 Mon Sep 17 00:00:00 2001
+From: Pritesh Patel <pritesh.patel@einfochips.com>
+Date: Tue, 20 May 2025 10:03:40 +0000
+Subject: [PATCH 2/5] platform: eswin: Add EIC770x UART driver
 
 Add UART driver for communication with MCU
 
@@ -12,8 +12,7 @@ Signed-off-by: Darshan Prajapati <darshan.prajapati@einfochips.com>
  platform/eswin/eic770x/eic770x_uart.c | 138 ++++++++++++++++++++++++++
  platform/eswin/eic770x/eic770x_uart.h |  98 ++++++++++++++++++
  platform/eswin/eic770x/objects.mk     |   1 +
- platform/eswin/eic770x/platform.c     |  14 +++
- 4 files changed, 251 insertions(+)
+ 3 files changed, 237 insertions(+)
  create mode 100644 platform/eswin/eic770x/eic770x_uart.c
  create mode 100644 platform/eswin/eic770x/eic770x_uart.h
 
@@ -277,31 +276,6 @@ index f713778..8535107 100644
  
  # Compiler flags
  platform-cppflags-y =
-diff --git a/platform/eswin/eic770x/platform.c b/platform/eswin/eic770x/platform.c
-index 713683a..f252fe4 100644
---- a/platform/eswin/eic770x/platform.c
-+++ b/platform/eswin/eic770x/platform.c
-@@ -133,6 +133,20 @@ static struct sbi_system_reset_device eic770x_reset = {
- 	.system_reset = eic770x_system_reset
- };
- 
-+/* UART2 is used for communication with stm32 on the carrier board of DVB */
-+int eic770x_uart2_init()
-+{
-+	/*reset uart2*/
-+	writeb(0x1B, (volatile void *)EIC770X_UART_RESET_ADDR);
-+	writeb(0x1F, (volatile void *)EIC770X_UART_RESET_ADDR);
-+	return eic770x_uart8250_init(EIC770X_UART2_ADDR,
-+			EIC770X_UART_CLK,
-+			EIC770X_UART_BAUDRATE,
-+			0x2,
-+			0x2);
-+
-+}
-+
- static int eic770x_early_init(bool cold_boot)
- {
- 	if (cold_boot)
 -- 
 2.25.1
 

@@ -1,7 +1,7 @@
-From d7f000872d71b174a11139eea096a70b57639bf5 Mon Sep 17 00:00:00 2001
-From: Darshan Prajapati <darshan.prajapati@einfochips.com>
-Date: Wed, 5 Jun 2024 12:02:11 +0530
-Subject: [PATCH 6/8] lib: sbi: eic770x: Add PMP for TOR region
+From 9369f37be1e1b6e1accca957aa362235ac16ffda Mon Sep 17 00:00:00 2001
+From: Pritesh Patel <pritesh.patel@einfochips.com>
+Date: Mon, 19 May 2025 14:52:01 +0000
+Subject: [PATCH 5/5] lib: sbi: eic770x: Add PMP for TOR region
 
 - Modify pmpcfg csr if TOR size is defined
 - Added 'unsigned long tor' in sbi_domain_memregion_init
@@ -10,28 +10,31 @@ Subject: [PATCH 6/8] lib: sbi: eic770x: Add PMP for TOR region
 - Add PMP permission for memory which is of DIE1 and Reserved memory area
   to protect those memory regions from speculative access
 - Removing PMP permission for PLIC memory regions as we are short of PMP regions
-	0x000000000c200000-0x000000000c203fff M: (I,R,W) S/U: (R,W)
-	0x000000000c000000-0x000000000c1fffff M: (I,R,W) S/U: (R,W)
+    0x000000000c200000-0x000000000c203fff M: (I,R,W) S/U: (R,W)
+    0x000000000c000000-0x000000000c1fffff M: (I,R,W) S/U: (R,W)
+- Removed PMP from UART driver as we are short of pmp regions and
+  use this region to mask the range 0x20000000-0x3FFFFFFF
 
 Upstream-Status: Pending
 
+Co-developed-by: Pritesh Patel <pritesh.patel@einfochips.com>
+Signed-off-by: Pritesh Patel <pritesh.patel@einfochips.com>
 Signed-off-by: Darshan Prajapati <darshan.prajapati@einfochips.com>
 Signed-off-by: Pinkesh Vaghela <pinkesh.vaghela@einfochips.com>
 ---
  include/sbi/sbi_domain.h    |  7 ++-
- lib/sbi/sbi_domain.c        | 40 ++++++++++++---
+ lib/sbi/sbi_domain.c        | 44 ++++++++++++++---
  lib/sbi/sbi_hart.c          | 98 +++++++++++++++++++++++++++++++------
- lib/utils/ipi/aclint_mswi.c |  2 +-
- lib/utils/irqchip/aplic.c   |  2 +-
- lib/utils/irqchip/imsic.c   |  2 +-
- lib/utils/irqchip/plic.c    |  5 ++
- 7 files changed, 131 insertions(+), 25 deletions(-)
+ lib/utils/fdt/fdt_domain.c  |  2 +-
+ lib/utils/irqchip/plic.c    |  7 ++-
+ lib/utils/serial/uart8250.c |  9 +++-
+ 6 files changed, 141 insertions(+), 26 deletions(-)
 
 diff --git a/include/sbi/sbi_domain.h b/include/sbi/sbi_domain.h
-index c88dbac..8ff71b5 100644
+index 8a2b123..fcc86fc 100644
 --- a/include/sbi/sbi_domain.h
 +++ b/include/sbi/sbi_domain.h
-@@ -154,6 +154,9 @@ struct sbi_domain_memregion {
+@@ -158,6 +158,9 @@ struct sbi_domain_memregion {
  
  #define SBI_DOMAIN_MEMREGION_MMIO		(1UL << 31)
  	unsigned long flags;
@@ -40,8 +43,8 @@ index c88dbac..8ff71b5 100644
 +
  };
  
- /** Maximum number of domains */
-@@ -245,11 +248,13 @@ ulong sbi_domain_get_assigned_hartmask(const struct sbi_domain *dom,
+ /** Representation of OpenSBI domain */
+@@ -243,11 +246,13 @@ int sbi_domain_get_assigned_hartmask(const struct sbi_domain *dom,
   * @param size physical size of memory region
   * @param flags memory region flags
   * @param reg pointer to memory region being initialized
@@ -57,11 +60,11 @@ index c88dbac..8ff71b5 100644
  /**
   * Check whether we can access specified address for given mode and
 diff --git a/lib/sbi/sbi_domain.c b/lib/sbi/sbi_domain.c
-index 4e9f742..06c60ae 100644
+index 1cf7e2d..c612336 100644
 --- a/lib/sbi/sbi_domain.c
 +++ b/lib/sbi/sbi_domain.c
-@@ -29,6 +29,10 @@ static bool domain_finalized = false;
- #define ROOT_REGION_MAX	16
+@@ -27,6 +27,10 @@ static bool domain_finalized = false;
+ #define ROOT_REGION_MAX	32
  static u32 root_memregs_count = 0;
  
 +#ifdef CONFIG_PLATFORM_ESWIN
@@ -71,7 +74,7 @@ index 4e9f742..06c60ae 100644
  struct sbi_domain root = {
  	.name = "root",
  	.possible_harts = NULL,
-@@ -82,10 +86,21 @@ ulong sbi_domain_get_assigned_hartmask(const struct sbi_domain *dom,
+@@ -93,10 +97,21 @@ int sbi_domain_get_assigned_hartmask(const struct sbi_domain *dom,
  	return ret;
  }
  
@@ -94,7 +97,7 @@ index 4e9f742..06c60ae 100644
  {
  	unsigned long base = 0, order;
  
-@@ -108,6 +123,7 @@ void sbi_domain_memregion_init(unsigned long addr,
+@@ -119,6 +134,7 @@ void sbi_domain_memregion_init(unsigned long addr,
  		reg->base = base;
  		reg->order = order;
  		reg->flags = flags;
@@ -102,7 +105,7 @@ index 4e9f742..06c60ae 100644
  	}
  }
  
-@@ -442,8 +458,12 @@ void sbi_domain_dump(const struct sbi_domain *dom, const char *suffix)
+@@ -453,8 +469,12 @@ void sbi_domain_dump(const struct sbi_domain *dom, const char *suffix)
  	i = 0;
  	sbi_domain_for_each_memregion(dom, reg) {
  		rstart = reg->base;
@@ -117,16 +120,16 @@ index 4e9f742..06c60ae 100644
  
  		sbi_printf("Domain%d Region%02d    %s: 0x%" PRILX "-0x%" PRILX " ",
  			   dom->index, i, suffix, rstart, rend);
-@@ -662,7 +682,7 @@ int sbi_domain_root_add_memrange(unsigned long addr, unsigned long size,
+@@ -675,7 +695,7 @@ int sbi_domain_root_add_memrange(unsigned long addr, unsigned long size,
  			rsize = ((end - pos) < align) ?
  				(end - pos) : align;
  
 -		sbi_domain_memregion_init(pos, rsize, region_flags, &reg);
 +		sbi_domain_memregion_init(pos, rsize, region_flags, &reg,0);
- 		rc = sbi_domain_root_add_memregion(&reg);
+ 		rc = root_add_memregion(&reg);
  		if (rc)
  			return rc;
-@@ -779,13 +799,19 @@ int sbi_domain_init(struct sbi_scratch *scratch, u32 cold_hartid)
+@@ -805,13 +825,23 @@ int sbi_domain_init(struct sbi_scratch *scratch, u32 cold_hartid)
  	sbi_domain_memregion_init(scratch->fw_start, scratch->fw_rw_offset,
  				  (SBI_DOMAIN_MEMREGION_M_READABLE |
  				   SBI_DOMAIN_MEMREGION_M_EXECUTABLE),
@@ -141,6 +144,10 @@ index 4e9f742..06c60ae 100644
 +				  &root_memregs[root_memregs_count++],0);
 +
 +#ifdef CONFIG_PLATFORM_ESWIN
++	sbi_domain_memregion_init(0x20000000UL, 0x1fffffffUL, SBI_DOMAIN_MEMREGION_ENF_PERMISSIONS,
++				&root_hole_region,0);
++	domain_memregion_inithole(&root_memregs[root_memregs_count++]);
++
 +	sbi_domain_memregion_init(0x1000000000UL, 0x3fffffUL, SBI_DOMAIN_MEMREGION_ENF_PERMISSIONS,
 +				&root_hole_region,0x7000000000UL);
 +	domain_memregion_inithole(&root_memregs[root_memregs_count++]);
@@ -148,7 +155,7 @@ index 4e9f742..06c60ae 100644
  
  	root.fw_region_inited = true;
  
-@@ -800,7 +826,7 @@ int sbi_domain_init(struct sbi_scratch *scratch, u32 cold_hartid)
+@@ -826,7 +856,7 @@ int sbi_domain_init(struct sbi_scratch *scratch, u32 cold_hartid)
  				  (SBI_DOMAIN_MEMREGION_SU_READABLE |
  				   SBI_DOMAIN_MEMREGION_SU_WRITABLE |
  				   SBI_DOMAIN_MEMREGION_SU_EXECUTABLE),
@@ -158,10 +165,10 @@ index 4e9f742..06c60ae 100644
  	/* Root domain memory region end */
  	root_memregs[root_memregs_count].order = 0;
 diff --git a/lib/sbi/sbi_hart.c b/lib/sbi/sbi_hart.c
-index 9f5d841..f621cdd 100644
+index 39157a0..80675c5 100644
 --- a/lib/sbi/sbi_hart.c
 +++ b/lib/sbi/sbi_hart.c
-@@ -268,6 +268,67 @@ unsigned int sbi_hart_mhpm_bits(struct sbi_scratch *scratch)
+@@ -288,6 +288,67 @@ unsigned int sbi_hart_mhpm_bits(struct sbi_scratch *scratch)
  	return hfeatures->mhpm_bits;
  }
  
@@ -229,7 +236,7 @@ index 9f5d841..f621cdd 100644
  /*
   * Returns Smepmp flags for a given domain and region based on permissions.
   */
-@@ -339,15 +400,19 @@ static void sbi_hart_smepmp_set(struct sbi_scratch *scratch,
+@@ -359,15 +420,19 @@ static void sbi_hart_smepmp_set(struct sbi_scratch *scratch,
  				unsigned int pmp_log2gran,
  				unsigned long pmp_addr_max)
  {
@@ -256,7 +263,7 @@ index 9f5d841..f621cdd 100644
  	}
  }
  
-@@ -457,14 +522,19 @@ static int sbi_hart_oldpmp_configure(struct sbi_scratch *scratch,
+@@ -477,14 +542,19 @@ static int sbi_hart_oldpmp_configure(struct sbi_scratch *scratch,
  		if (reg->flags & SBI_DOMAIN_MEMREGION_SU_EXECUTABLE)
  			pmp_flags |= PMP_X;
  
@@ -283,60 +290,66 @@ index 9f5d841..f621cdd 100644
  		}
  	}
  
-diff --git a/lib/utils/ipi/aclint_mswi.c b/lib/utils/ipi/aclint_mswi.c
-index 4ae6bb1..d49f491 100644
---- a/lib/utils/ipi/aclint_mswi.c
-+++ b/lib/utils/ipi/aclint_mswi.c
-@@ -121,7 +121,7 @@ int aclint_mswi_cold_init(struct aclint_mswi_data *mswi)
- 					  (SBI_DOMAIN_MEMREGION_MMIO |
- 					   SBI_DOMAIN_MEMREGION_M_READABLE |
- 					   SBI_DOMAIN_MEMREGION_M_WRITABLE),
--					  &reg);
-+					  &reg,0);
- 		rc = sbi_domain_root_add_memregion(&reg);
- 		if (rc)
- 			return rc;
-diff --git a/lib/utils/irqchip/aplic.c b/lib/utils/irqchip/aplic.c
-index 10236e7..78b3893 100644
---- a/lib/utils/irqchip/aplic.c
-+++ b/lib/utils/irqchip/aplic.c
-@@ -272,7 +272,7 @@ int aplic_cold_irqchip_init(struct aplic_data *aplic)
- 					  (SBI_DOMAIN_MEMREGION_MMIO |
- 					   SBI_DOMAIN_MEMREGION_M_READABLE |
- 					   SBI_DOMAIN_MEMREGION_M_WRITABLE),
--					  &reg);
-+					  &reg,0);
- 		rc = sbi_domain_root_add_memregion(&reg);
- 		if (rc)
- 			return rc;
-diff --git a/lib/utils/irqchip/imsic.c b/lib/utils/irqchip/imsic.c
-index 36ef66c..8ec21e7 100644
---- a/lib/utils/irqchip/imsic.c
-+++ b/lib/utils/irqchip/imsic.c
-@@ -369,7 +369,7 @@ int imsic_cold_irqchip_init(struct imsic_data *imsic)
- 					  (SBI_DOMAIN_MEMREGION_MMIO |
- 					   SBI_DOMAIN_MEMREGION_M_READABLE |
- 					   SBI_DOMAIN_MEMREGION_M_WRITABLE),
--					  &reg);
-+					  &reg,0);
- 		rc = sbi_domain_root_add_memregion(&reg);
- 		if (rc)
- 			return rc;
+diff --git a/lib/utils/fdt/fdt_domain.c b/lib/utils/fdt/fdt_domain.c
+index 4bc7ed8..1b52e13 100644
+--- a/lib/utils/fdt/fdt_domain.c
++++ b/lib/utils/fdt/fdt_domain.c
+@@ -295,7 +295,7 @@ static int __fdt_parse_region(const void *fdt, int domain_offset,
+ 		flags |= SBI_DOMAIN_MEMREGION_MMIO;
+ 
+ 	sbi_domain_memregion_init(base, (order == __riscv_xlen) ? ~0UL : BIT(order),
+-				  flags, &preg->dom->regions[preg->region_count]);
++				  flags, &preg->dom->regions[preg->region_count],0);
+ 
+ 	preg->region_count++;
+ 
 diff --git a/lib/utils/irqchip/plic.c b/lib/utils/irqchip/plic.c
-index 193e320..8907cce 100644
+index 8b2190f..e180693 100644
 --- a/lib/utils/irqchip/plic.c
 +++ b/lib/utils/irqchip/plic.c
-@@ -173,7 +173,12 @@ int plic_cold_irqchip_init(const struct plic_data *plic)
- 	for (i = 1; i <= plic->num_src; i++)
- 		plic_set_priority(plic, i, 0);
+@@ -222,7 +222,10 @@ static int plic_warm_irqchip_init(struct sbi_irqchip_device *dev)
  
-+#ifdef CONFIG_PLATFORM_ESWIN
-+	/* For now, not adding memrange for PLIC as we are short of PMP regions */
-+	return 0;
-+#else
- 	return sbi_domain_root_add_memrange(plic->addr, plic->size, BIT(20),
+ int plic_cold_irqchip_init(struct plic_data *plic)
+ {
+-	int i, ret;
++	int i;
++#ifndef CONFIG_PLATFORM_ESWIN
++	int ret;
++#endif
+ 
+ 	if (!plic)
+ 		return SBI_EINVAL;
+@@ -264,11 +267,13 @@ int plic_cold_irqchip_init(struct plic_data *plic)
+ 
+ 	plic_delegate(plic);
+ 
++#ifndef CONFIG_PLATFORM_ESWIN
+ 	ret = sbi_domain_root_add_memrange(plic->addr, plic->size, BIT(20),
  					(SBI_DOMAIN_MEMREGION_MMIO |
  					 SBI_DOMAIN_MEMREGION_SHARED_SURW_MRW));
+ 	if (ret)
+ 		return ret;
++#endif
+ 
+ 	for (u32 i = 0; i <= sbi_scratch_last_hartindex(); i++) {
+ 		if (plic->context_map[i][PLIC_M_CONTEXT] < 0 &&
+diff --git a/lib/utils/serial/uart8250.c b/lib/utils/serial/uart8250.c
+index 1fe053f..b25d374 100644
+--- a/lib/utils/serial/uart8250.c
++++ b/lib/utils/serial/uart8250.c
+@@ -135,7 +135,12 @@ int uart8250_init(unsigned long base, u32 in_freq, u32 baudrate, u32 reg_shift,
+ 
+ 	sbi_console_set_device(&uart8250_console);
+ 
++#ifdef CONFIG_PLATFORM_ESWIN
++	/* For now, not adding memrange for UART as we are short of PMP regions */
++	return 0;
++#else
+ 	return sbi_domain_root_add_memrange(base, PAGE_SIZE, PAGE_SIZE,
+-					    (SBI_DOMAIN_MEMREGION_MMIO |
+-					    SBI_DOMAIN_MEMREGION_SHARED_SURW_MRW));
++			(SBI_DOMAIN_MEMREGION_MMIO |
++			 SBI_DOMAIN_MEMREGION_SHARED_SURW_MRW));
 +#endif
  }
 -- 

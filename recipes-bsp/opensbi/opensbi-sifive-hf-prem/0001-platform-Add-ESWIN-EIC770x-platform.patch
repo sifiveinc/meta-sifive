@@ -1,9 +1,10 @@
-From fca38cd3252102fdb4d7e119a2d0e2cab3806ae6 Mon Sep 17 00:00:00 2001
+From 41fd12039e3194f6664ec5e4ecb16e1fc6fda4b6 Mon Sep 17 00:00:00 2001
 From: Darshan Prajapati <darshan.prajapati@einfochips.com>
 Date: Wed, 5 Jun 2024 11:45:33 +0530
-Subject: [PATCH 1/8] platform: Add ESWIN EIC770x platform
+Subject: [PATCH 1/5] platform: Add ESWIN EIC770x platform
 
-ESWIN EIC770x is a 64-bit RISC-V core.
+- ESWIN EIC770x is a 64-bit RISC-V core.
+- Write Fractional register to ensure correct baud rate
 
 Upstream-Status: Pending
 
@@ -12,8 +13,8 @@ Signed-off-by: Darshan Prajapati <darshan.prajapati@einfochips.com>
  platform/eswin/eic770x/Kconfig           |  25 +++
  platform/eswin/eic770x/configs/defconfig |  35 ++++
  platform/eswin/eic770x/objects.mk        |  31 +++
- platform/eswin/eic770x/platform.c        | 244 +++++++++++++++++++++++
- 4 files changed, 335 insertions(+)
+ platform/eswin/eic770x/platform.c        | 245 +++++++++++++++++++++++
+ 4 files changed, 336 insertions(+)
  create mode 100644 platform/eswin/eic770x/Kconfig
  create mode 100644 platform/eswin/eic770x/configs/defconfig
  create mode 100644 platform/eswin/eic770x/objects.mk
@@ -130,10 +131,10 @@ index 0000000..f713778
 +FW_PAYLOAD_FDT_ADDR=0xf8000000
 diff --git a/platform/eswin/eic770x/platform.c b/platform/eswin/eic770x/platform.c
 new file mode 100644
-index 0000000..746f0c1
+index 0000000..23c9834
 --- /dev/null
 +++ b/platform/eswin/eic770x/platform.c
-@@ -0,0 +1,244 @@
+@@ -0,0 +1,245 @@
 +// SPDX-License-Identifier: BSD-2-Clause
 +/*
 + *
@@ -190,6 +191,26 @@ index 0000000..746f0c1
 +#define EIC770X_SYS_RESET_VALUE			0x1ac0ffe6
 +
 +/* clang-format on */
++
++#define UART_DLF_OFFSET				48	/* I/O: Divisor Latch Fraction Register */
++
++/*
++ * Divide positive or negative dividend by positive or negative divisor
++ * and round to closest integer. Result is undefined for negative
++ * divisors if the dividend variable type is unsigned and for negative
++ * dividends if the divisor variable type is unsigned.
++ */
++#define DIV_ROUND_CLOSEST(x, divisor)(  \
++{   \
++    typeof(x) __x = x;  \
++    typeof(divisor) __d = divisor;  \
++    (((typeof(x))-1) > 0 || \
++     ((typeof(divisor))-1) > 0 ||   \
++     (((__x) > 0) == ((__d) > 0))) ?    \
++     (((__x) + ((__d) / 2)) / (__d)) :  \
++     (((__x) - ((__d) / 2)) / (__d));   \
++}   \
++)
 +
 +static struct plic_data plic = {
 +	.addr = EIC770X_PLIC_ADDR,
@@ -251,8 +272,25 @@ index 0000000..746f0c1
 +
 +static int eic770x_early_init(bool cold_boot)
 +{
++	int ret;
++	u32 bdiv_f, base_baud;
++
 +	if (cold_boot)
 +		sbi_system_reset_add_device(&eic770x_reset);
++
++	ret =  uart8250_init(EIC770X_UART0_ADDR,
++			EIC770X_UART_CLK,
++			EIC770X_UART_BAUDRATE,
++			0x2,
++			0x2,0);
++	if (ret<0)
++		return ret;
++
++	base_baud = EIC770X_UART_BAUDRATE * 16;
++	bdiv_f = EIC770X_UART_CLK % base_baud;
++	bdiv_f = DIV_ROUND_CLOSEST(bdiv_f << 0x4, base_baud);
++
++	writew(bdiv_f, ((volatile char *)EIC770X_UART0_ADDR + (UART_DLF_OFFSET << 2)));
 +
 +	return 0;
 +}
@@ -270,41 +308,14 @@ index 0000000..746f0c1
 +	return 0;
 +}
 +
-+static int eic770x_console_init(void)
++static int eic770x_irqchip_init(void)
 +{
-+	return uart8250_init(EIC770X_UART0_ADDR,
-+			     EIC770X_UART_CLK,
-+			     EIC770X_UART_BAUDRATE,
-+			     0x2,
-+			     0x2,0);
++	return plic_cold_irqchip_init(&plic);
 +}
 +
-+static int eic770x_irqchip_init(bool cold_boot)
++static int eic770x_ipi_init(void)
 +{
-+	int rc;
-+	u32 hartid = current_hartid();
-+
-+	if (cold_boot) {
-+		rc = plic_cold_irqchip_init(&plic);
-+		if (rc)
-+			return rc;
-+	}
-+
-+	return plic_warm_irqchip_init(&plic, 2 * hartid ,2 * hartid + 1);
-+}
-+
-+static int eic770x_ipi_init(bool cold_boot)
-+{
-+	int rc;
-+
-+	if (cold_boot) {
-+		rc = aclint_mswi_cold_init(&mswi);
-+		if (rc)
-+			return rc;
-+	}
-+
-+	return aclint_mswi_warm_init();
-+
++	return aclint_mswi_cold_init(&mswi);
 +}
 +
 +static u64 eic770x_get_tlbr_flush_limit(void)
@@ -312,17 +323,9 @@ index 0000000..746f0c1
 +	return EIC770X_TLB_RANGE_FLUSH_LIMIT;
 +}
 +
-+static int eic770x_timer_init(bool cold_boot)
++static int eic770x_timer_init(void)
 +{
-+	int rc;
-+
-+	if (cold_boot) {
-+		rc = aclint_mtimer_cold_init(&mtimer, NULL);
-+		if (rc)
-+			return rc;
-+	}
-+
-+	return aclint_mtimer_warm_init();
++	return aclint_mtimer_cold_init(&mtimer, NULL);
 +}
 +
 +static int generic_pmu_init(void)
@@ -355,7 +358,6 @@ index 0000000..746f0c1
 +const struct sbi_platform_operations platform_ops = {
 +	.early_init		= eic770x_early_init,
 +	.final_init		= eic770x_final_init,
-+	.console_init		= eic770x_console_init,
 +	.irqchip_init		= eic770x_irqchip_init,
 +	.ipi_init		= eic770x_ipi_init,
 +	.get_tlbr_flush_limit	= eic770x_get_tlbr_flush_limit,

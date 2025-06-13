@@ -1,7 +1,7 @@
-From 4cc14eeedb908c789475080695b4f57c89020183 Mon Sep 17 00:00:00 2001
+From fde4c25677f1fb177c0277033e39c5ed27a735e9 Mon Sep 17 00:00:00 2001
 From: Pritesh Patel <pritesh.patel@einfochips.com>
 Date: Mon, 19 May 2025 14:50:02 +0000
-Subject: [PATCH 4/5] lib: sbi: Configure CSR registers
+Subject: [PATCH 4/6] lib: sbi: Configure CSR registers
 
 Configure CSR with below values values
 0x7C1 --> 0x4000

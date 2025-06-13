@@ -19,6 +19,7 @@ SRC_URI:append = " \
 	file://0003-platform-eswin-Add-shutdown-and-reset-function.patch \
 	file://0004-lib-sbi-Configure-CSR-registers.patch \
 	file://0005-lib-sbi-eic770x-Add-PMP-for-TOR-region.patch \
+	file://0006-sbi-init-Modify-CSR-registers.patch \
 "
 
 S = "${WORKDIR}/git"

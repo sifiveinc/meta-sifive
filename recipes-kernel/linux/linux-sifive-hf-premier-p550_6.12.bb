@@ -4,12 +4,12 @@ LICENSE = "GPL-2.0-only"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
-KBRANCH ?= "rel/kernel/hifive-premier-p550"
-KBRANCH:hifive-premier-p550 = "rel/kernel/hifive-premier-p550"
+KBRANCH ?= "rel/kernel-6.12/hifive-premier-p550"
+KBRANCH:hifive-premier-p550 = "rel/kernel-6.12/hifive-premier-p550"
 
-SRCREV_machine ?= "b4a753400e624a0eba3ec475fba2866dd7efb767"
-SRCREV_machine:hifive-premier-p550 = "b4a753400e624a0eba3ec475fba2866dd7efb767"
-SRCREV_meta ?= "078f986aa4c328285abd0181cc21724d832a3ae0"
+SRCREV_machine ?= "c006f3bb3649056a32948c12e276932f30db459d"
+SRCREV_machine:hifive-premier-p550 = "c006f3bb3649056a32948c12e276932f30db459d"
+SRCREV_meta ?= "bc26c6c6b91fa0e4de4920544cc4aeeb3dedd894"
 
 KCONFIG_MODE = "--alldefconfig"
 
@@ -24,10 +24,10 @@ KERNEL_FEATURES:remove = "features/kernel-sample/kernel-sample.scc"
 require recipes-kernel/linux/linux-yocto.inc
 
 SRC_URI = "git://git@github.com/sifive/riscv-linux.git;protocol=ssh;name=machine;branch=${KBRANCH} \
-           git://git.yoctoproject.org/yocto-kernel-cache;type=kmeta;name=meta;branch=yocto-6.6;destsuffix=${KMETA}"
+           git://git.yoctoproject.org/yocto-kernel-cache;type=kmeta;name=meta;branch=yocto-6.12;destsuffix=${KMETA}"
 
 LIC_FILES_CHKSUM = "file://COPYING;md5=6bc538ed5bd9a7fc9398086aedcd7e46"
-LINUX_VERSION ?= "6.6.77"
+LINUX_VERSION ?= "6.12.33"
 LINUX_VERSION_EXTENSION = ""
 
 PV = "${LINUX_VERSION}+git${SRCPV}"

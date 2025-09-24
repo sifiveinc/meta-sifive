@@ -1,7 +1,7 @@
-From 1d3cee822a66d1201cdb51df0df4277a4cd7be47 Mon Sep 17 00:00:00 2001
+From a450510a19a4b7d380c0a950172b7a5a25109d68 Mon Sep 17 00:00:00 2001
 From: Pinkesh Vaghela <pinkesh.vaghela@einfochips.com>
 Date: Fri, 6 Jun 2025 13:04:15 +0530
-Subject: [PATCH 6/6] sbi: init: Modify CSR registers
+Subject: [PATCH 6/7] sbi: init: Modify CSR registers
 
 Changed CSR 0x7C3 and 0x7C4 values to improve DDR preformance
   0x7C3 --> 0x104095c1be241

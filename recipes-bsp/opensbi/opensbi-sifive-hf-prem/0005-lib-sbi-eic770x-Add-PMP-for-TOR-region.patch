@@ -1,7 +1,7 @@
-From b684f521a7921ad823fc6f2657890bc887aadc6c Mon Sep 17 00:00:00 2001
+From 4d39356db6d4474adfad29b4a926423542b4338c Mon Sep 17 00:00:00 2001
 From: Pritesh Patel <pritesh.patel@einfochips.com>
 Date: Mon, 19 May 2025 14:52:01 +0000
-Subject: [PATCH 5/6] lib: sbi: eic770x: Add PMP for TOR region
+Subject: [PATCH 5/7] lib: sbi: eic770x: Add PMP for TOR region
 
 - Modify pmpcfg csr if TOR size is defined
 - Added 'unsigned long tor' in sbi_domain_memregion_init

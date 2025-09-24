@@ -1,7 +1,7 @@
-From 0d7141a6195824103a6a029f289459cb86f164d7 Mon Sep 17 00:00:00 2001
+From 518b40534155a6632061630a4972cdfda999a427 Mon Sep 17 00:00:00 2001
 From: Darshan Prajapati <darshan.prajapati@einfochips.com>
 Date: Wed, 5 Jun 2024 11:45:33 +0530
-Subject: [PATCH 1/6] platform: Add ESWIN EIC770x platform
+Subject: [PATCH 1/7] platform: Add ESWIN EIC770x platform
 
 - ESWIN EIC770x is a 64-bit RISC-V core.
 - Write Fractional register to ensure correct baud rate

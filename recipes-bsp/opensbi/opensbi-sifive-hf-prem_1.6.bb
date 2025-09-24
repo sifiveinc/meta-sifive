@@ -20,6 +20,7 @@ SRC_URI:append = " \
 	file://0004-lib-sbi-Configure-CSR-registers.patch \
 	file://0005-lib-sbi-eic770x-Add-PMP-for-TOR-region.patch \
 	file://0006-sbi-init-Modify-CSR-registers.patch \
+	file://0007-lib-Emulate-HENVCFG-and-SENVCFG-CSR-for-platforms-no.patch \
 "
 
 S = "${WORKDIR}/git"

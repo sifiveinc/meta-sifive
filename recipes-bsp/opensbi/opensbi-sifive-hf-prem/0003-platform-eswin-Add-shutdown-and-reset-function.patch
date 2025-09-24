@@ -1,7 +1,7 @@
-From 50d2aeb426f91af9b73486b451cdeea5d1f3af73 Mon Sep 17 00:00:00 2001
+From dc5c62ab2b0e61466f73a48aac53813907c4fec4 Mon Sep 17 00:00:00 2001
 From: Pritesh Patel <pritesh.patel@einfochips.com>
 Date: Tue, 20 May 2025 10:05:21 +0000
-Subject: [PATCH 3/6] platform: eswin: Add shutdown and reset function
+Subject: [PATCH 3/7] platform: eswin: Add shutdown and reset function
 
 Send message to MCU via UART2 for shutdown and reset function of SoC.
 

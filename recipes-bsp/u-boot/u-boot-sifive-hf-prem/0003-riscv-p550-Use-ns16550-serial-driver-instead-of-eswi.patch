@@ -1,0 +1,28 @@
+From 12ed4edb5f19910073fb1d19e9cd639a34cb1eb3 Mon Sep 17 00:00:00 2001
+From: Bo Gan <ganboing@gmail.com>
+Date: Wed, 10 Dec 2025 15:51:07 -0800
+Subject: [PATCH 3/4] riscv: p550: Use ns16550 serial driver instead of eswin
+ driver
+
+Upstream-Status: Pending
+
+---
+ configs/hifive_premier_p550_defconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/configs/hifive_premier_p550_defconfig b/configs/hifive_premier_p550_defconfig
+index b65345808f..8dec64ff37 100644
+--- a/configs/hifive_premier_p550_defconfig
++++ b/configs/hifive_premier_p550_defconfig
+@@ -86,7 +86,7 @@ CONFIG_PCIE_DW_ESWIN=y
+ CONFIG_PINCTRL=y
+ CONFIG_PINCONF=y
+ CONFIG_RESET_ESWIN=y
+-CONFIG_ESWIN_UART_SYNOPSYS=y
++CONFIG_SYS_NS16550=y
+ CONFIG_SPI=y
+ CONFIG_DESIGNWARE_SPI=y
+ CONFIG_ESWIN_SPI=y
+-- 
+2.34.1
+

@@ -1,0 +1,49 @@
+From 6025600a80686868c5c1d658dabcb1d1cbd0f8ac Mon Sep 17 00:00:00 2001
+From: Jaychand Agrawal <jaychand.agrawal@einfochips.com>
+Date: Fri, 8 Aug 2025 12:24:39 +0530
+Subject: [PATCH 7/7] lib: Emulate HENVCFG and SENVCFG CSR for platforms not
+ having these CSR
+
+For platforms not having HENVCFG CSR, we trap-n-emulate HENVCFG CSR
+read/write in OpenSBI. Same rationale applies to SENVCFG CSR
+as well so we trap-n-emulate SENVCFG CSR for platforms not
+having SENVCFG CSR.
+
+Upstream-Status: Pending
+
+Signed-off-by: Jaychand Agrawal <jaychand.agrawal@einfochips.com>
+Co-developed-by: Pritesh Patel <pritesh.patel@einfochips.com>
+Signed-off-by: Pritesh Patel <pritesh.patel@einfochips.com>
+---
+ lib/sbi/sbi_emulate_csr.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/lib/sbi/sbi_emulate_csr.c b/lib/sbi/sbi_emulate_csr.c
+index c2253c8..564a1f3 100644
+--- a/lib/sbi/sbi_emulate_csr.c
++++ b/lib/sbi/sbi_emulate_csr.c
+@@ -140,6 +140,10 @@ int sbi_emulate_csr_read(int csr_num, struct sbi_trap_regs *regs,
+ #undef switchcase_hpm_2
+ #undef switchcase_hpm
+ 
++	case CSR_HENVCFG:
++		break;
++	case CSR_SENVCFG:
++		break;
+ 	default:
+ 		ret = SBI_ENOTSUPP;
+ 		break;
+@@ -170,6 +174,10 @@ int sbi_emulate_csr_write(int csr_num, struct sbi_trap_regs *regs,
+ 			ret = SBI_ENOTSUPP;
+ 		break;
+ #endif
++	case CSR_HENVCFG:
++		break;
++	case CSR_SENVCFG:
++		break;
+ 	default:
+ 		ret = SBI_ENOTSUPP;
+ 		break;
+-- 
+2.25.1
+

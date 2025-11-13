@@ -1,0 +1,41 @@
+From e6014e2f1cd9ee758eba8d8b47a1006f5af48ea2 Mon Sep 17 00:00:00 2001
+From: Jaychand Agrawal <jaychand.agrawal@einfochips.com>
+Date: Thu, 26 Jun 2025 16:21:39 +0530
+Subject: [PATCH] csr henvcfg illegal insn handled
+
+Upstream-Status: Pending
+
+---
+ lib/sbi/sbi_emulate_csr.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/lib/sbi/sbi_emulate_csr.c b/lib/sbi/sbi_emulate_csr.c
+index c2253c82..0534b94b 100644
+--- a/lib/sbi/sbi_emulate_csr.c
++++ b/lib/sbi/sbi_emulate_csr.c
+@@ -140,6 +140,10 @@ int sbi_emulate_csr_read(int csr_num, struct sbi_trap_regs *regs,
+ #undef switchcase_hpm_2
+ #undef switchcase_hpm
+ 
++#ifdef CONFIG_PLATFORM_ESWIN
++	case CSR_HENVCFG:
++		break;
++#endif
+ 	default:
+ 		ret = SBI_ENOTSUPP;
+ 		break;
+@@ -170,6 +174,11 @@ int sbi_emulate_csr_write(int csr_num, struct sbi_trap_regs *regs,
+ 			ret = SBI_ENOTSUPP;
+ 		break;
+ #endif
++
++#ifdef CONFIG_PLATFORM_ESWIN
++	case CSR_HENVCFG:
++		break;
++#endif
+ 	default:
+ 		ret = SBI_ENOTSUPP;
+ 		break;
+-- 
+2.25.1
+

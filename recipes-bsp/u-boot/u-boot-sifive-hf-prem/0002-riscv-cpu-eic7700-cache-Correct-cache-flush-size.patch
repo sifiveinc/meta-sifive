@@ -1,0 +1,65 @@
+From f0e62f33bcd0bfbc53494a8dd8c01d1b89f4a2ad Mon Sep 17 00:00:00 2001
+From: Pinkesh Vaghela <pinkesh.vaghela@einfochips.com>
+Date: Mon, 24 Aug 2026 07:22:41 +0000
+Subject: [PATCH] riscv: cpu: eic7700: cache: Correct cache flush size
+
+Use RAM size to determine cache flush size instead of a fixed value,
+ensuring the full memory range is flushed on both 16GB and 32GB boards
+
+Upstream-Status: Pending
+
+Signed-off-by: Pinkesh Vaghela <pinkesh.vaghela@einfochips.com>
+---
+ arch/riscv/cpu/eic770x/cache.c | 11 ++++++-----
+ 1 file changed, 6 insertions(+), 5 deletions(-)
+
+diff --git a/arch/riscv/cpu/eic770x/cache.c b/arch/riscv/cpu/eic770x/cache.c
+index d690582fe0..10f24ab1cb 100644
+--- a/arch/riscv/cpu/eic770x/cache.c
++++ b/arch/riscv/cpu/eic770x/cache.c
+@@ -22,17 +22,18 @@
+ #include <cpu_func.h>
+ #include <asm/io.h>
+ #include <asm/cache.h>
++#include <asm/global_data.h>
+ 
+ #define SIFIVE_L3_FLUSH64 0x200
+ #define SIFIVE_L3_FLUSH64_LINE_LEN          64
+ #define CONFIG_SIFIVE_DIE0_L3_FLUSH_START        0x80000000UL
+-#define CONFIG_SIFIVE_DIE0_L3_FLUSH_SIZE        0x400000000UL
+ #define CONFIG_SIFIVE_DIE1_L3_FLUSH_START      0x2000000000UL
+-#define CONFIG_SIFIVE_DIE1_L3_FLUSH_SIZE        0x400000000UL
+ 
+ #define L3_DIE0_CTRL_BASE  0x2010000UL
+ #define L3_DIE1_CTRL_BASE 0x22010000UL
+ 
++DECLARE_GLOBAL_DATA_PTR;
++
+ void sifive_l3_flush64_range(unsigned long start, unsigned long len)
+ {
+     unsigned long line;
+@@ -46,12 +47,12 @@ void sifive_l3_flush64_range(unsigned long start, unsigned long len)
+ 
+     /* make sure the address is in the range */
+     if((start >= CONFIG_SIFIVE_DIE0_L3_FLUSH_START) &&
+-       ((start + len) <= (CONFIG_SIFIVE_DIE0_L3_FLUSH_START + CONFIG_SIFIVE_DIE0_L3_FLUSH_SIZE)))
++       ((start + len) <= (CONFIG_SIFIVE_DIE0_L3_FLUSH_START + gd->ram_size)))
+     {
+         l3_base = L3_DIE0_CTRL_BASE;
+     }
+     else if((start >= CONFIG_SIFIVE_DIE1_L3_FLUSH_START) &&
+-       ((start + len) <= (CONFIG_SIFIVE_DIE1_L3_FLUSH_START + CONFIG_SIFIVE_DIE1_L3_FLUSH_SIZE)))
++       ((start + len) <= (CONFIG_SIFIVE_DIE1_L3_FLUSH_START + gd->ram_size)))
+     {
+         l3_base = L3_DIE1_CTRL_BASE;
+     }
+@@ -80,4 +81,4 @@ void flush_dcache_range(unsigned long start, unsigned long end)
+ void invalidate_dcache_range(unsigned long start, unsigned long end)
+ {
+     sifive_l3_flush64_range(start, end - start);
+-}
+\ No newline at end of file
++}
+-- 
+2.34.1
+

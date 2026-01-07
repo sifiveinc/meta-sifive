@@ -27,7 +27,8 @@ local_conf_header:
     EXTRA_IMAGE_FEATURES ?= "\
         allow-empty-password \
         allow-root-login \
-        empty-root-password"
+        empty-root-password \
+	post-install-logging"
     INHERIT:append = " rm_work"
     RM_OLD_IMAGE = "1"
 

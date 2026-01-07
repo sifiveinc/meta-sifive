@@ -20,3 +20,7 @@ local_conf_header:
     PREFERRED_PROVIDER_virtual/bootloader:qemuriscv64 = "u-boot-sifive"
 
     PREFERRED_PROVIDER_opensbi ?= "opensbi-sifive"
+
+  workaround: |
+    # https://lists.openembedded.org/g/openembedded-core/message/228969
+    QB_CPU:riscv64 ?= "-cpu rva23s64,pmp=true"

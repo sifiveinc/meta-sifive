@@ -1,0 +1,33 @@
+From dd7fb8f0ea8369987641374b3ffdfaa24af7e180 Mon Sep 17 00:00:00 2001
+From: Pinkesh Vaghela <pinkesh.vaghela@einfochips.com>
+Date: Tue, 9 Jun 2026 06:16:48 +0000
+Subject: [PATCH] sbi: init: Modify CSR register to Disable NLP
+
+Changed CSR 0x7C1 value to Disable next-line predictor
+  0x7C1 --> 0xC000
+
+Upstream-Status: Pending
+
+Signed-off-by: Pinkesh Vaghela <pinkesh.vaghela@einfochips.com>
+---
+ lib/sbi/sbi_init.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/lib/sbi/sbi_init.c b/lib/sbi/sbi_init.c
+index 402325bf..fe1be11a 100644
+--- a/lib/sbi/sbi_init.c
++++ b/lib/sbi/sbi_init.c
+@@ -570,8 +570,8 @@ void __noreturn sbi_init(struct sbi_scratch *scratch)
+ 
+ #ifdef CONFIG_PLATFORM_ESWIN
+ 
+-	/* disable indirect jump predictor and enable speculative icache refill */
+-	csr_write(0x7C1, 0x4000);
++	/* disable indirect jump predictor and next-line predictor, enable speculative icache refill */
++	csr_write(0x7C1, 0xC000);
+ 
+ 	/* Force noisy evict to send release message from any valid coherence permission state */
+ 	csr_write(0x7C2, 0x80);
+-- 
+2.34.1
+

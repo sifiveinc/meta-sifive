@@ -18,12 +18,15 @@ local_conf_header:
         features/wifi/wifi-all.scc \
     "
 
-    DISTRO_FEATURES:append = " ptest"
+    DISTRO_FEATURES:append = " glvnd ptest"
 
     EXTRA_IMAGE_FEATURES:append = " \
         hwcodecs \
         ptest-pkgs \
         ssh-server-openssh"
+
+    MACHINE_EXTRA_RRECOMMENDS:append = " linux-firmware-radeon"
+    MACHINE_EXTRA_RRECOMMENDS:append = " libgl-mesa mesa-megadriver"
 
     IMAGE_CLASSES:append = " testimage testsdk"
     IMAGE_INSTALL:append = " linux-firmware"

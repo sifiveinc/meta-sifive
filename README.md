@@ -115,7 +115,7 @@ images for writing to uSD card.
 Images built can be flashed with `bmaptool` (faster), for example:
 
 ```bash
-sudo bmaptool copy ../build/tmp-glibc/deploy/images/unmatched/core-image-minimal-unmatched.rootfs.wic.xz /dev/mmcblk0
+sudo bmaptool copy ../build/tmp/deploy/images/unmatched/core-image-minimal-unmatched.rootfs.wic.xz /dev/mmcblk0
 ```
 
 Otherwise, you can also use the `dd` command, for example:

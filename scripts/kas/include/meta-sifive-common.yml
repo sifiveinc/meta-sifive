@@ -7,13 +7,13 @@ repos:
 
   bitbake:
     url: https://git.openembedded.org/bitbake
-    commit: acfe02fa38b5da9e6a36c6cedcf91d4fcbefbfbd
+    commit: c251833d2062ef92fc7e77ab6456af928ad1d31a
     layers:
       .: excluded
 
   openembedded-core:
     url: https://git.openembedded.org/openembedded-core
-    commit: 39d4d267906f8e18d44e1ba5da84acc4a5a85b61
+    commit: 90f823defa32477c9dbd91d264f581fdf0ee4068
     layers:
       meta:
 

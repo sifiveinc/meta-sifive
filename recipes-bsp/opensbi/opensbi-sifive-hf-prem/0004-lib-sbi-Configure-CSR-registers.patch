@@ -1,0 +1,149 @@
+From c0a5814db4c6f59bbfe28c19b783af6d6247e69e Mon Sep 17 00:00:00 2001
+From: Pritesh Patel <pritesh.patel@einfochips.com>
+Date: Mon, 19 May 2025 14:50:02 +0000
+Subject: [PATCH 4/7] lib: sbi: Configure CSR registers
+
+Configure CSR with below values values
+0x7C1 --> 0x4000
+0x7C2 --> 0x80
+0x7C3 --> 0x5c1be649
+0x7C4 --> 0x929f
+
+Upstream-Status: Pending
+
+Signed-off-by: Pinkesh Vaghela <pinkesh.vaghela@einfochips.com>
+Signed-off-by: Pritesh Patel <pritesh.patel@einfochips.com>
+---
+ include/sbi/sbi_hart.h |  3 +++
+ lib/sbi/sbi_hart.c     | 25 +++++++++++++++++++++++++
+ lib/sbi/sbi_init.c     | 29 +++++++++++++++++++++++++++++
+ 3 files changed, 57 insertions(+)
+
+diff --git a/include/sbi/sbi_hart.h b/include/sbi/sbi_hart.h
+index 4c36c77..7ce0eb2 100644
+--- a/include/sbi/sbi_hart.h
++++ b/include/sbi/sbi_hart.h
+@@ -132,6 +132,9 @@ unsigned int sbi_hart_pmp_log2gran(struct sbi_scratch *scratch);
+ unsigned int sbi_hart_pmp_addrbits(struct sbi_scratch *scratch);
+ unsigned int sbi_hart_mhpm_bits(struct sbi_scratch *scratch);
+ int sbi_hart_pmp_configure(struct sbi_scratch *scratch);
++#ifdef CONFIG_PLATFORM_ESWIN
++void sbi_configure_hart_blocker(struct sbi_scratch *scratch);
++#endif
+ int sbi_hart_map_saddr(unsigned long base, unsigned long size);
+ int sbi_hart_unmap_saddr(void);
+ int sbi_hart_priv_version(struct sbi_scratch *scratch);
+diff --git a/lib/sbi/sbi_hart.c b/lib/sbi/sbi_hart.c
+index 0451fcb..39157a0 100644
+--- a/lib/sbi/sbi_hart.c
++++ b/lib/sbi/sbi_hart.c
+@@ -23,6 +23,7 @@
+ #include <sbi/sbi_string.h>
+ #include <sbi/sbi_trap.h>
+ #include <sbi/sbi_hfence.h>
++#include <sbi/riscv_io.h>
+ 
+ extern void __sbi_expected_trap(void);
+ extern void __sbi_expected_trap_hext(void);
+@@ -578,6 +579,30 @@ int sbi_hart_pmp_configure(struct sbi_scratch *scratch)
+ 	return rc;
+ }
+ 
++#ifdef CONFIG_PLATFORM_ESWIN
++static void init_bus_blocker(void)
++{
++	#define BLOCKER_TL64D2D_OUT     (void *)0x200000
++	#define BLOCKER_TL256D2D_OUT    (void *)0x202000
++	#define BLOCKER_TL256D2D_IN     (void *)0x204000
++
++	writel(1,BLOCKER_TL64D2D_OUT);
++	writel(1,BLOCKER_TL256D2D_OUT);
++	writel(1,BLOCKER_TL256D2D_IN);
++}
++
++void sbi_configure_hart_blocker(struct sbi_scratch *scratch)
++{
++	struct sbi_domain *dom = sbi_domain_thishart_ptr();
++
++	if (dom->boot_hartid == current_hartid()) {
++		/* if only one die, need config blocker to
++		   generate fake response when access remote target */
++		init_bus_blocker();
++	}
++}
++#endif
++
+ int sbi_hart_priv_version(struct sbi_scratch *scratch)
+ {
+ 	struct sbi_hart_features *hfeatures =
+diff --git a/lib/sbi/sbi_init.c b/lib/sbi/sbi_init.c
+index 58030cf..2952601 100644
+--- a/lib/sbi/sbi_init.c
++++ b/lib/sbi/sbi_init.c
+@@ -11,6 +11,7 @@
+ #include <sbi/riscv_atomic.h>
+ #include <sbi/riscv_barrier.h>
+ #include <sbi/sbi_console.h>
++#include <sbi/riscv_io.h>
+ #include <sbi/sbi_cppc.h>
+ #include <sbi/sbi_domain.h>
+ #include <sbi/sbi_ecall.h>
+@@ -334,6 +335,10 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
+ 		sbi_hart_hang();
+ 	}
+ 
++#ifdef CONFIG_PLATFORM_ESWIN
++	sbi_configure_hart_blocker(scratch);
++#endif
++
+ 	/*
+ 	 * Note: Platform final initialization should be after finalizing
+ 	 * domains so that it sees correct domain assignment and PMP
+@@ -440,6 +445,10 @@ static void __noreturn init_warm_startup(struct sbi_scratch *scratch,
+ 	if (rc)
+ 		sbi_hart_hang();
+ 
++#ifdef CONFIG_PLATFORM_ESWIN
++	sbi_configure_hart_blocker(scratch);
++#endif
++
+ 	rc = sbi_platform_final_init(plat, false);
+ 	if (rc)
+ 		sbi_hart_hang();
+@@ -473,6 +482,10 @@ static void __noreturn init_warm_resume(struct sbi_scratch *scratch,
+ 	if (rc)
+ 		sbi_hart_hang();
+ 
++#ifdef CONFIG_PLATFORM_ESWIN
++	sbi_configure_hart_blocker(scratch);
++#endif
++
+ 	sbi_hsm_hart_resume_finish(scratch, hartid);
+ }
+ 
+@@ -555,6 +568,22 @@ void __noreturn sbi_init(struct sbi_scratch *scratch)
+ 	if (sbi_platform_nascent_init(plat))
+ 		sbi_hart_hang();
+ 
++#ifdef CONFIG_PLATFORM_ESWIN
++
++	/* disable indirect jump predictor and enable speculative icache refill */
++	csr_write(0x7C1, 0x4000);
++
++	/* Force noisy evict to send release message from any valid coherence permission state */
++	csr_write(0x7C2, 0x80);
++
++	/* Set CSR 0x7C3 to 0x5c1be649 */
++	csr_write(0x7C3, 0x5c1be649);
++
++	/* Set CSR 0x7C4 to 0x929F */
++	csr_write(0x7C4, 0x929f);
++
++#endif
++
+ 	if (coldboot)
+ 		init_coldboot(scratch, hartid);
+ 	else
+-- 
+2.25.1
+

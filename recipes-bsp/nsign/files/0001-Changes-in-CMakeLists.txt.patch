@@ -4,6 +4,8 @@ Date: Mon, 12 Aug 2024 14:02:30 +0000
 Subject: [PATCH] Changes in CMakeLists.txt
 
 Upstream-Status: Pending
+
+Signed-off-by: Pritesh Patel <pritesh.patel@einfochips.com>
 ---
 
  src/CMakeLists.txt | 4 ++--

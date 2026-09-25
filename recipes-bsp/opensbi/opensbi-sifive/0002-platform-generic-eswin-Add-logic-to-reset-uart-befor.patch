@@ -1,0 +1,44 @@
+From ab6d57bdc9eda3a172a1fdfb4996fb7301fc22e4 Mon Sep 17 00:00:00 2001
+From: Pinkesh Vaghela <pinkesh.vaghela@einfochips.com>
+Date: Tue, 1 Sep 2026 18:27:16 +0530
+Subject: [PATCH 2/2] platform: generic: eswin: Add logic to reset uart before
+ init
+
+Upstream-Status: Pending
+
+Signed-off-by: Pinkesh Vaghela <pinkesh.vaghela@einfochips.com>
+---
+ platform/generic/eswin/hfp.c             | 4 ++++
+ platform/generic/include/eswin/eic770x.h | 1 +
+ 2 files changed, 5 insertions(+)
+
+diff --git a/platform/generic/eswin/hfp.c b/platform/generic/eswin/hfp.c
+index eabed191..b7b59206 100644
+--- a/platform/generic/eswin/hfp.c
++++ b/platform/generic/eswin/hfp.c
+@@ -66,6 +66,10 @@ static void hfp_send_bmc_msg(uint8_t type, uint8_t cmd,
+ 	sysclk_rate = eic770x_sysclk_rate();
+ 	eic770x_enable_uart_clk(HFP_MCU_UART_PORT);
+ 
++	/*reset uart2*/
++	writel(0x1B, (volatile void *)EIC770X_UART_RESET_ADDR);
++	writel(0x1F, (volatile void *)EIC770X_UART_RESET_ADDR);
++
+ 	uart8250_device_init(&uart_dev,
+ 			EIC770X_UART(HFP_MCU_UART_PORT),
+ 			sysclk_rate,
+diff --git a/platform/generic/include/eswin/eic770x.h b/platform/generic/include/eswin/eic770x.h
+index 67764ec0..ff7d9e0a 100644
+--- a/platform/generic/include/eswin/eic770x.h
++++ b/platform/generic/include/eswin/eic770x.h
+@@ -52,6 +52,7 @@ struct eic770x_board_override {
+ #define EIC770X_UART0		(EIC770X_SYSPORT_LOCAL + 0x10900000UL)
+ #define EIC770X_UART_SIZE	0x10000UL
+ #define EIC770X_UART(x)		(EIC770X_UART0 + EIC770X_UART_SIZE * (x))
++#define EIC770X_UART_RESET_ADDR			0x51828434UL
+ #define EIC770X_UART_REG_SHIFT	2
+ #define EIC770X_UART_REG_WIDTH	4
+ 
+-- 
+2.34.1
+

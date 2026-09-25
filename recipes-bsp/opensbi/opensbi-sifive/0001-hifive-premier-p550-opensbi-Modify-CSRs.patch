@@ -1,0 +1,51 @@
+From 5c0c491383874866747b28e0e666d0f4b8127949 Mon Sep 17 00:00:00 2001
+From: Pritesh Patel <pritesh.patel@einfochips.com>
+Date: Thu, 3 Sep 2026 07:55:46 +0000
+Subject: [PATCH 1/2] hifive-premier-p550: opensbi: Modify CSRs
+
+Set CSRs as below
+0x7C1 --> 0xC000
+0x7C2 --> 0x80
+0x7C3 --> 0x104095c1be241
+0x7C4 --> 0x93ff
+
+Upstream-Status: Pending
+
+Signed-off-by: Pritesh Patel <pritesh.patel@einfochips.com>
+---
+ platform/generic/eswin/Kconfig | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/platform/generic/eswin/Kconfig b/platform/generic/eswin/Kconfig
+index 7326686b..b27a1561 100644
+--- a/platform/generic/eswin/Kconfig
++++ b/platform/generic/eswin/Kconfig
+@@ -2,7 +2,7 @@
+ 
+ config ESWIN_EIC770X_FEAT0_CFG
+ 	hex "ESWIN EIC7700X Feature Disable 0 CSR Configuration"
+-	default 0x4000
++	default 0xc000
+ 	help
+ 	 CSR Value to initialize EIC770X_FEAT0 (0x7c1) with.
+ 	 Refer to EIC770X SoC TRM for recommendations.
+@@ -16,14 +16,14 @@ config ESWIN_EIC770X_FEAT1_CFG
+ 
+ config ESWIN_EIC770X_L1_HWPF_CFG
+ 	hex "ESWIN EIC7700X L1 HW Prefetcher CSR Configuration"
+-	default 0x1005c1be649
++	default 0x104095c1be241
+ 	help
+ 	 CSR Value to initialize EIC770X_L1_HWPF (0x7c3) with.
+ 	 Refer to EIC770X SoC TRM for recommendations.
+ 
+ config ESWIN_EIC770X_L2_HWPF_CFG
+ 	hex "ESWIN EIC7700X L2 HW Prefetcher CSR Configuration"
+-	default 0x929f
++	default 0x93ff
+ 	help
+ 	 CSR Value to initialize EIC770X_L2_HWPF (0x7c4) with.
+ 	 Refer to EIC770X SoC TRM for recommendations.
+-- 
+2.34.1
+

@@ -13,12 +13,19 @@ inherit deploy
 SRCREV = "cbf9f6734dd85a982c63e3cb5db7ffe09da839ca"
 SRC_URI = "git://github.com/riscv/opensbi.git;branch=master;protocol=https;tag=v${PV}"
 
+SRC_URI:append:hifive-premier-p550 = " \
+    file://0001-hifive-premier-p550-opensbi-Modify-CSRs.patch \
+    file://0002-platform-generic-eswin-Add-logic-to-reset-uart-befor.patch \
+    file://0003-lib-Emulate-HENVCFG-and-SENVCFG-CSR-for-platforms-no.patch \
+"
+
 TARGET_DBGSRC_DIR = "/share/opensbi/*/generic/firmware/"
 
 TARGET_CC_ARCH += "${LDFLAGS}"
 
 RISCV_SBI_FW_TEXT_START ??= "0x80000000"
 EXTRA_OEMAKE += "REPRODUCIBLE=y CROSS_COMPILE=${HOST_PREFIX} PLATFORM=${RISCV_SBI_PLAT} I=${D} FW_TEXT_START=${RISCV_SBI_FW_TEXT_START}"
+EXTRA_OEMAKE:append:hifive-premier-p550 = " PLATFORM_RISCV_ISA=rv64imafdc_zicsr_zifencei FW_PAYLOAD_OFFSET=0x200000 FW_PAYLOAD_FDT_ADDR=0xf8000000"
 EXTRA_OEMAKE:append:toolchain-clang = " LLVM=y"
 # If RISCV_SBI_PAYLOAD is set then include it as a payload
 EXTRA_OEMAKE:append = " ${@riscv_get_extra_oemake_image(d)}"

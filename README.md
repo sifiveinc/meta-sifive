@@ -30,6 +30,7 @@ git clone https://github.com/sifive/meta-sifive
 This layer provides a BSP for the following machines:
 * `freedom-u540`: The SiFive HiFive Unleashed board
 * `unmatched`: The Sifive Unmatched board
+* `hifive-premier-p550`: The Sifive HiFive Premier P550 board
 
 But changes are also validated on Qemu RISC-V 64bits, so this layer
 also provide a Kas yaml to build this machine.
@@ -53,6 +54,7 @@ build environment to build `core-minimal` images for supported targets:
 kas build --update ./meta-sifive/scripts/kas/freedom-u540.yml
 kas build --update ./meta-sifive/scripts/kas/qemuriscv64.yml
 kas build --update ./meta-sifive/scripts/kas/unmatched.yml
+kas build --update ./meta-sifive/scripts/kas/hifive-premier-p550.yml
 ```
 
 Moreover, it is also possible to build other images, or SDK, or also packages,
@@ -87,7 +89,7 @@ These tests can be executed on all supported targets, using the following comman
 kas build --update ./meta-sifive/scripts/kas/qemuriscv64.yml:./meta-sifive/scripts/kas/include/test.yml
 kas shell --update ./meta-sifive/scripts/kas/qemuriscv64.yml:./meta-sifive/scripts/kas/include/test.yml -c "bitbake core-image-minimal -c populate_sdk && bitbake core-image-minimal -c testsdk"
 kas shell --update ./meta-sifive/scripts/kas/qemuriscv64.yml:./meta-sifive/scripts/kas/include/test.yml -c "bitbake core-image-minimal -c populate_sdk_ext && bitbake core-image-minimal -c testsdkext"
-kas shell --update ./meta-sifive/scripts/kas/qemuriscv64.yml:./meta-sifive/scripts/kas/include/test.yml -c "resulttool report  ./tmp-glibc/log/oeqa"
+kas shell --update ./meta-sifive/scripts/kas/qemuriscv64.yml:./meta-sifive/scripts/kas/include/test.yml -c "resulttool report  ./tmp/log/oeqa"
 ```
 
 ## Running on Hardware
@@ -97,11 +99,15 @@ You will find all available build fragments (incl. disk images) in
 - `freedom-u540`
 - `qemuriscv64`
 - `unmatched`
+- `hifive-premier-p550`
 
 Disk images files use `<image>-<machine>.<output_format>` format, for example,
 
 `core-image-minimal-unmatched.wic.xz`. We are interested in `.wic.xz` disk
 images for writing to uSD card.
+
+For HiFive Premier P550 board, apart from `wic.xz` image, it is also necessary
+to flash the bootloader image `bootloader_ddr5_secboot.bin` to SPI-NOR flash.
 
 > Be very careful while picking /dev/sdX device! Look at dmesg, lsblk, blkid,
 > GNOME Disks, etc. before and after plugging in your uSD card to find a
@@ -121,8 +127,10 @@ sudo bmaptool copy ../build/tmp/deploy/images/unmatched/core-image-minimal-unmat
 Otherwise, you can also use the `dd` command, for example:
 
 ```bash
-xzcat ../build/tmp-glibc/deploy/images/unmatched/core-image-minimal-unmatched.rootfs.wic.xz | sudo dd of=/dev/mmcblk0 bs=512K iflag=fullblock oflag=direct conv=fsync status=progress
+xzcat ../build/tmp/deploy/images/unmatched/core-image-minimal-unmatched.rootfs.wic.xz | sudo dd of=/dev/mmcblk0 bs=512K iflag=fullblock oflag=direct conv=fsync status=progress
 ```
+
+For HiFive Premier P550, Image Flashing and update procedure is available at [Image Flashing](https://www.sifive.com/document-file/hifive-premier-image-update-procedure)
 
 ### MSEL for Unleashed
 
@@ -159,14 +167,25 @@ BOOT MODE SEL
 
 ```
 
+For HiFive Premier P550, bootloader is always loaded from onboard SPI-NOR Flash. The steps to flash and update the bootloader image are available in document [Image Flashing](https://www.sifive.com/document-file/hifive-premier-image-update-procedure) Chapter 5.
 
-### Connecting Using Serial Console
 
+## Connecting Using Serial Console
+
+### Connecting HiFive Unleashed and HiFive Unmatched
 Connect your HiFive Unleashed or HiFive Unmatched to your PC using microUSB-USB cable to access serial console.
 
 For macOS, run: `screen -L /dev/tty.usbserial-*01 115200`
 
 For Linux, run: `screen -L /dev/serial/by-id/usb-FTDI_Dual_RS232-HS-if01-port0 115200`
+
+### Connecting HiFive Premier P550
+Connect your HiFive Premier P550 to your PC using USB Type C cable to access serial console.
+
+For macOS, run: `screen -L /dev/tty.usbserial-*02 115200`
+
+For Linux, run: `screen -L /dev/serial/by-id/usb-FTDI_Dual_RS232-HS-if02-port0 115200`
+
 
 The above commands might vary depending on your exact setup.
 
@@ -194,7 +213,7 @@ systemctl disable sshd.socket
 systemctl stop sshd.socket
 ```
 
-The HiFive Unleashed and Unmatched behave like any other network capable
+The HiFive Unleashed, Unmatched and Premier P550 behave like any other network capable
 device (such as PC, laptop, and Single Board Computers like Raspberry Pi).
 Connect the board to your network (for example, a router), and it will acquire
 IPv4 + DNS configuration using DHCP protocol. You can use your router
@@ -221,6 +240,8 @@ system). If you already booted the system and cannot do offline resizing then
 the following instructions should resize rootfs (root file partition) to full
 uSD capacity:
 
+Below are the example commands for HiFive Unleashed and Unmatched
+
 ```bash
 sgdisk -v /dev/mmcblk0
 sgdisk -e /dev/mmcblk0
@@ -228,6 +249,18 @@ parted /dev/mmcblk0 resizepart 4 100%
 resize2fs /dev/mmcblk0p4
 sync
 ```
+
+Below are the example commands for HiFive Premier P550
+
+```bash
+sgdisk -v /dev/mmcblkX
+sgdisk -e /dev/mmcblkX
+parted /dev/mmcblkX resizepart 2 100%
+resize2fs /dev/mmcblkXp2
+sync
+```
+> For HiFive Premier P550 boards, X=0 refers to eMMC and X=1 for uSD Card
+
 
 ### NBD (Network Block Device) rootfs
 
@@ -286,6 +319,7 @@ use [meta-sifive](https://github.com/sifive/meta-sifive) repository on
 GitHub. So that the maintainer can process your request.
 
 You are also welcome to join [SiFive Forums ](https://forums.sifive.com/)
-where we have [HiFive Unleashed](https://forums.sifive.com/c/hifive-unleashed/12)
-and [HiFive Unmatched](https://forums.sifive.com/c/hifive-unmatched/16)
+where we have [HiFive Unleashed](https://forums.sifive.com/c/hifive-unleashed/12), 
+[HiFive Unmatched](https://forums.sifive.com/c/hifive-unmatched/16) and
+[HiFive Premier P550](https://forums.sifive.com/c/premier-p550/18)
 categories for discussions.

@@ -1,0 +1,132 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Pritesh Patel <pritesh.patel@einfochips.com>
+Date: Thu, 8 Oct 2026 00:00:00 +0000
+Subject: [PATCH] drm: img: Fix GCC 16 unused-but-set-variable errors
+
+GCC 16 uses level 3 for -Wunused-but-set-variable by default. Unlike
+GCC 15, increments and compound assignments no longer count as reads,
+so release builds diagnose counters whose only consumers are compiled-out
+debug or PDump logging. CONFIG_WERROR then makes these warnings fatal.
+
+Build PDump and checkpoint-debug counters only with their consumers, mark
+counters used only by compiled-out PVR_DPF logging as intentionally
+unreferenced, and remove checkpoint counters that have no consumer.
+
+This fixes the IMG Volcanic driver build without weakening warning policy.
+
+Upstream-Status: Pending
+
+Signed-off-by: Pritesh Patel <pritesh.patel@einfochips.com>
+---
+ .../services/server/common/mmu_common.c       | 4 +++
+ .../services/server/common/sync_checkpoint.c  | 7 ++++++-
+ .../server/devices/rgxhwperf_common.c         | 1 +
+ .../server/env/linux/pvr_export_fence.c       | 4 ----
+ .../services/server/env/linux/pvr_gputrace.c  | 4 ++++
+ 5 files changed, 15 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/gpu/drm/img/img-volcanic/services/server/common/mmu_common.c b/drivers/gpu/drm/img/img-volcanic/services/server/common/mmu_common.c
+index c9c5114..11f7b86 100644
+--- a/drivers/gpu/drm/img/img-volcanic/services/server/common/mmu_common.c
++++ b/drivers/gpu/drm/img/img-volcanic/services/server/common/mmu_common.c
+@@ -3270,7 +3270,9 @@ MMU_MapPages(MMU_CONTEXT *psMMUContext,
+ 	IMG_UINT32 uiPTEIndex = 0;
+ 	IMG_UINT32 uiPageSize = (1 << uiLog2HeapPageSize);
+ 	IMG_UINT32 uiLoop = 0;
++#if defined(PDUMP)
+ 	IMG_UINT32 ui32MappedCount = 0;
++#endif
+ 	IMG_DEVMEM_OFFSET_T uiPgOffset = 0;
+ 	IMG_UINT32 uiFlushEnd = 0, uiFlushStart = 0;
+ 
+@@ -3570,7 +3572,9 @@ MMU_MapPages(MMU_CONTEXT *psMMUContext,
+ 						sDevVAddr.uiAddr,
+ 						uiPgOffset * uiPageSize));
+ 
++#if defined(PDUMP)
+ 				ui32MappedCount++;
++#endif
+ 			}
+ 		}
+ 
+diff --git a/drivers/gpu/drm/img/img-volcanic/services/server/common/sync_checkpoint.c b/drivers/gpu/drm/img/img-volcanic/services/server/common/sync_checkpoint.c
+index a72ec7d..eef9b67 100644
+--- a/drivers/gpu/drm/img/img-volcanic/services/server/common/sync_checkpoint.c
++++ b/drivers/gpu/drm/img/img-volcanic/services/server/common/sync_checkpoint.c
+@@ -3302,7 +3302,10 @@ static IMG_UINT32 _CleanCheckpointPool(_SYNC_CHECKPOINT_CONTEXT *psContext)
+ 	DECLARE_DLLIST(sCleanupList);
+ 	DLLIST_NODE *psThis, *psNext;
+ 	OS_SPINLOCK_FLAGS uiFlags;
+-	IMG_UINT32 ui32ItemsFreed = 0, ui32NullScpCount = 0;
++	IMG_UINT32 ui32ItemsFreed = 0;
++#if (ENABLE_SYNC_CHECKPOINT_POOL_DEBUG == 1)
++	IMG_UINT32 ui32NullScpCount = 0;
++#endif
+ 
+ 	/* Acquire sync checkpoint pool lock */
+ 	OSSpinLockAcquire(psCtxCtl->hSyncCheckpointPoolLock, uiFlags);
+@@ -3325,10 +3328,12 @@ static IMG_UINT32 _CleanCheckpointPool(_SYNC_CHECKPOINT_CONTEXT *psContext)
+ 			 * from the list so it's safe to use sListNode here */
+ 			dllist_add_to_head(&sCleanupList, &psCheckpoint->sListNode);
+ 		}
++#if (ENABLE_SYNC_CHECKPOINT_POOL_DEBUG == 1)
+ 		else
+ 		{
+ 			ui32NullScpCount++;
+ 		}
++#endif
+ 	}
+ 
+ 	/* Release sync checkpoint pool lock */
+diff --git a/drivers/gpu/drm/img/img-volcanic/services/server/devices/rgxhwperf_common.c b/drivers/gpu/drm/img/img-volcanic/services/server/devices/rgxhwperf_common.c
+index b440560..63665a7 100644
+--- a/drivers/gpu/drm/img/img-volcanic/services/server/devices/rgxhwperf_common.c
++++ b/drivers/gpu/drm/img/img-volcanic/services/server/devices/rgxhwperf_common.c
+@@ -3929,6 +3929,7 @@ PVRSRV_ERROR RGXHWPerfAcquireEvents(
+ 	}
+ 
+ 	PVR_DPF((PVR_DBG_VERBOSE, "RGXHWPerfAcquireEvents: TL Packets processed %03d", ui32TlPackets));
++	PVR_UNREFERENCED_PARAMETER(ui32TlPackets);
+ 
+ 	psDevData->bRelease[eStreamId] = IMG_FALSE;
+ 	if (psHDRptr >= (PVRSRVTL_PPACKETHDR)((void *)pBufferEnd))
+diff --git a/drivers/gpu/drm/img/img-volcanic/services/server/env/linux/pvr_export_fence.c b/drivers/gpu/drm/img/img-volcanic/services/server/env/linux/pvr_export_fence.c
+index 9a192b1..cc5a1fc 100644
+--- a/drivers/gpu/drm/img/img-volcanic/services/server/env/linux/pvr_export_fence.c
++++ b/drivers/gpu/drm/img/img-volcanic/services/server/env/linux/pvr_export_fence.c
+@@ -140,8 +140,6 @@ pvr_exp_fence_context_signal_fences(void *data)
+ 	struct pvr_exp_fence_context *fctx = (struct pvr_exp_fence_context *)data;
+ 	struct pvr_exp_fence *pvr_exp_fence, *tmp;
+ 	unsigned long flags1;
+-	int chkpt_ct = 0;
+-	int chkpt_sig_ct = 0;
+ 
+ 	LIST_HEAD(signal_list);
+ 
+@@ -158,9 +156,7 @@ pvr_exp_fence_context_signal_fences(void *data)
+ 	 */
+ 	spin_lock_irqsave(&fctx->list_lock, flags1);
+ 	list_for_each_entry_safe(pvr_exp_fence, tmp, &fctx->signal_list, signal_head) {
+-		chkpt_ct++;
+ 		if (pvr_exp_fence_sync_is_signaled(pvr_exp_fence, PVRSRV_FENCE_FLAG_SUPPRESS_HWP_PKT)) {
+-			chkpt_sig_ct++;
+ 			list_move_tail(&pvr_exp_fence->signal_head, &signal_list);
+ 		}
+ 	}
+diff --git a/drivers/gpu/drm/img/img-volcanic/services/server/env/linux/pvr_gputrace.c b/drivers/gpu/drm/img/img-volcanic/services/server/env/linux/pvr_gputrace.c
+index bbfa350..f7dfe64 100644
+--- a/drivers/gpu/drm/img/img-volcanic/services/server/env/linux/pvr_gputrace.c
++++ b/drivers/gpu/drm/img/img-volcanic/services/server/env/linux/pvr_gputrace.c
+@@ -1194,6 +1194,10 @@ static void _GpuTraceProcessPackets(PVRSRV_RGXDEV_INFO *psDevInfo, void *pBuffer
+ 			"Packets processed %03d, HWPerf packets %03d, sent %03d",
+ 			ui32TlPackets, ui32HWPerfPackets, ui32HWPerfPacketsSent));
+ 
++	PVR_UNREFERENCED_PARAMETER(ui32TlPackets);
++	PVR_UNREFERENCED_PARAMETER(ui32HWPerfPackets);
++	PVR_UNREFERENCED_PARAMETER(ui32HWPerfPacketsSent);
++
+ 	PVR_DPF_RETURN;
+ }
+ 
+-- 
+2.34.1

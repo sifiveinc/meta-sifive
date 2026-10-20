@@ -10,6 +10,7 @@ SRC_URI = "git://github.com/eswincomputing/u-boot.git;protocol=https;branch=u-bo
            file://0002-riscv-dts-eic770x-Fix-issues-running-upstream-OpenSB.patch \
            file://0003-riscv-p550-Use-ns16550-serial-driver-instead-of-eswi.patch \
            file://0004-riscv-cpu-eic7700-cache-Correct-cache-flush-size.patch \
+           file://0001-Add-support-for-OpenSSL-Provider-API.patch \
            "
 
 SRCREV = "EIC7X-2025.01"

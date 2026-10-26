@@ -11,7 +11,10 @@ require recipes-bsp/opensbi/opensbi-payloads.inc
 inherit deploy
 
 SRCREV = "cbf9f6734dd85a982c63e3cb5db7ffe09da839ca"
-SRC_URI = "git://github.com/riscv/opensbi.git;branch=master;protocol=https;tag=v${PV}"
+SRC_URI = " \
+            git://github.com/riscv/opensbi.git;branch=master;protocol=https;tag=v${PV} \
+            file://0001-Makefile-don-t-grep-when-setting-CC_SUPPORT_ZICSR_ZI.patch \
+            "
 
 SRC_URI:append:hifive-premier-p550 = " \
     file://0001-hifive-premier-p550-opensbi-Modify-CSRs.patch \
